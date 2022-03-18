@@ -35,10 +35,8 @@ class Final_Model(nn.Module):
 
     def forward(self, x):
         middle_feature_maps=self.backend(x)
-        
-        semantic_output=self.semantic_head(middle_feature_maps)
-      
-        return semantic_output
+
+        return self.semantic_head(middle_feature_maps)
 
 
 class BasicBlock(nn.Module):
@@ -182,23 +180,23 @@ class ResNet_ASPP_1(nn.Module):
 
         self.inplanes = 128
         self.dilation = 1
-   
+
         self.groups = groups
         self.base_width = width_per_group
 
         if self.if_remission and not self.if_range:
             self.conv1 = nn.Conv2d(4, 128, kernel_size=1, stride=1, padding=0,bias=True)
-        if self.if_range and self.if_range:
+        if self.if_range:
             self.conv1 = nn.Conv2d(5, 128, kernel_size=1, stride=1, padding=0,bias=True)
         if not self.if_remission and not self.if_range:        
             self.conv1 = nn.Conv2d(3, 128, kernel_size=1, stride=1, padding=0,bias=True)
 
 
-   
+
         self.conv2 = nn.Conv2d(128, 128, kernel_size=1, stride=1, padding=0,bias=False)
         self.bn = nn.BatchNorm2d(128)
         self.relu = nn.LeakyReLU()
-        
+
 
         self.layer1 = self._make_layer(block, 128, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
@@ -211,11 +209,11 @@ class ResNet_ASPP_1(nn.Module):
         self.conv_Aspp_2=nn.Conv2d(768, 128, 3, padding=6, dilation=6, bias=False)
         self.bn2 = nn.BatchNorm2d(128)
         self.relu_2 = nn.LeakyReLU()
-        
+
         self.conv_Aspp_3=nn.Conv2d(768, 128, 3, padding=9, dilation=9, bias=False)
         self.bn3 = nn.BatchNorm2d(128)
         self.relu_3 = nn.LeakyReLU()
-        
+
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -254,15 +252,23 @@ class ResNet_ASPP_1(nn.Module):
                 conv1x1(self.inplanes, planes * block.expansion, stride)
                 )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, if_BN=self.if_BN))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                if_BN=self.if_BN))
+        layers = [
+            block(
+                self.inplanes,
+                planes,
+                stride,
+                downsample,
+                self.groups,
+                self.base_width,
+                previous_dilation,
+                if_BN=self.if_BN,
+            )
+        ]
 
+        self.inplanes = planes * block.expansion
+        layers.extend(block(self.inplanes, planes, groups=self.groups,
+                                base_width=self.base_width, dilation=self.dilation,
+                                if_BN=self.if_BN) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
@@ -322,23 +328,23 @@ class ResNet_ASPP_2(nn.Module):
 
         self.inplanes = 128
         self.dilation = 1
-   
+
         self.groups = groups
         self.base_width = width_per_group
 
         if self.if_remission and not self.if_range:
             self.conv1 = nn.Conv2d(4, 64, kernel_size=1, stride=1, padding=0,bias=True)
-        if self.if_range and self.if_range:
+        if self.if_range:
             self.conv1 = nn.Conv2d(5, 64, kernel_size=1, stride=1, padding=0,bias=True)
         if not self.if_remission and not self.if_range:        
             self.conv1 = nn.Conv2d(3, 64, kernel_size=1, stride=1, padding=0,bias=True)
 
 
-   
+
         self.conv2 = nn.Conv2d(64, 128, kernel_size=1, stride=1, padding=0,bias=True)
         self.bn = nn.BatchNorm2d(128)
         self.relu = nn.LeakyReLU()
-        
+
 
         self.layer1 = self._make_layer(block, 128, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
@@ -351,11 +357,11 @@ class ResNet_ASPP_2(nn.Module):
         self.conv_Aspp_2=nn.Conv2d(128*7, 256, 3, padding=6, dilation=6, bias=True)
         self.bn2 = nn.BatchNorm2d(256)
         self.relu_2 = nn.LeakyReLU()
-        
+
         self.conv_Aspp_3=nn.Conv2d(128*7, 256, 3, padding=9, dilation=9, bias=True)
         self.bn3 = nn.BatchNorm2d(256)
         self.relu_3 = nn.LeakyReLU()
-        
+
         # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         # self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -394,15 +400,23 @@ class ResNet_ASPP_2(nn.Module):
                 conv1x1(self.inplanes, planes * block.expansion, stride)
                 )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, if_BN=self.if_BN))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                if_BN=self.if_BN))
+        layers = [
+            block(
+                self.inplanes,
+                planes,
+                stride,
+                downsample,
+                self.groups,
+                self.base_width,
+                previous_dilation,
+                if_BN=self.if_BN,
+            )
+        ]
 
+        self.inplanes = planes * block.expansion
+        layers.extend(block(self.inplanes, planes, groups=self.groups,
+                                base_width=self.base_width, dilation=self.dilation,
+                                if_BN=self.if_BN) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
@@ -546,15 +560,23 @@ class ResNet_34_point(nn.Module):
                 conv1x1(self.inplanes, planes * block.expansion, stride)
                 )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, if_BN=self.if_BN))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                if_BN=self.if_BN))
+        layers = [
+            block(
+                self.inplanes,
+                planes,
+                stride,
+                downsample,
+                self.groups,
+                self.base_width,
+                previous_dilation,
+                if_BN=self.if_BN,
+            )
+        ]
 
+        self.inplanes = planes * block.expansion
+        layers.extend(block(self.inplanes, planes, groups=self.groups,
+                                base_width=self.base_width, dilation=self.dilation,
+                                if_BN=self.if_BN) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
@@ -599,31 +621,37 @@ class ResNet_34_point(nn.Module):
 
 
 def _resnet(arch, block, layers, if_BN,if_remission):
-    model = ResNet(block, layers, if_BN,if_remission,if_range,zero_init_residual=False)
-
-    return model
+    return ResNet(
+        block, layers, if_BN, if_remission, if_range, zero_init_residual=False
+    )
 
 def _resnet_aspp(arch, block, layers, if_BN,if_remission,if_range):
-    model = ResNet_ASPP(block, layers, if_BN,if_remission,if_range,zero_init_residual=False)
-
-    return model
+    return ResNet_ASPP(
+        block, layers, if_BN, if_remission, if_range, zero_init_residual=False
+    )
 
 
 
 def _resnet_aspp_1(arch, block, layers, if_BN,if_remission,if_range):
-    model = ResNet_ASPP_1(block, layers, if_BN,if_remission,if_range,zero_init_residual=False)
-
-    return model
+    return ResNet_ASPP_1(
+        block, layers, if_BN, if_remission, if_range, zero_init_residual=False
+    )
 
 def _resnet_aspp_2(arch, block, layers, if_BN,if_remission,if_range):
-    model = ResNet_ASPP_2(block, layers, if_BN,if_remission,if_range,zero_init_residual=False)
-
-    return model
+    return ResNet_ASPP_2(
+        block, layers, if_BN, if_remission, if_range, zero_init_residual=False
+    )
 
 def _resnet_point(arch, block, layers, if_BN,if_remission,if_range,with_normal):
-    model = ResNet_34_point(block, layers, if_BN,if_remission,if_range,with_normal,zero_init_residual=False)
-
-    return model
+    return ResNet_34_point(
+        block,
+        layers,
+        if_BN,
+        if_remission,
+        if_range,
+        with_normal,
+        zero_init_residual=False,
+    )
 
 def resnet18(if_BN,if_remission,if_range):
     """ResNet-18 model from
