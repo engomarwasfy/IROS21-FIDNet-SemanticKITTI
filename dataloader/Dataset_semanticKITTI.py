@@ -47,10 +47,10 @@ class Dataset_semanticKITTI(data.Dataset):
         self.if_range=if_range
         self.flip_sign=flip_sign
         self.with_normal=with_normal
-        
 
-        self.CFG = yaml.safe_load(open(root+'semantic-kitti.yaml', 'r'))
-        
+
+        self.CFG = yaml.safe_load(open(f'{root}semantic-kitti.yaml', 'r'))
+
         self.color_dict = self.CFG["color_map"]
 
         self.label_transfer_dict =self.CFG["learning_map"]
@@ -60,10 +60,18 @@ class Dataset_semanticKITTI(data.Dataset):
         self.A=SemLaserScan(nclasses=self.nclasses , sem_color_dict=self.color_dict, project=True, flip_sign=self.flip_sign, H=self.range_h, W=self.range_w, fov_up=3.0, fov_down=-25.0)
 
 
-        if self.split=='train' or self.split=='val': 
-            self.lidar_list=glob.glob(root+'/data_odometry_velodyne/*/*/'+self.split+'/*/*/*.bin')
+        if self.split in ['train', 'val']: 
+            self.lidar_list = glob.glob(
+                f'{root}/data_odometry_velodyne/*/*/{self.split}/*/*/*.bin'
+            )
+
         if self.split=='trainval':
-            self.lidar_list=glob.glob(root+'/data_odometry_velodyne/*/*/'+'train'+'/*/*/*.bin')+glob.glob(root+'/data_odometry_velodyne/*/*/'+'val'+'/*/*/*.bin')
+            self.lidar_list = glob.glob(
+                f'{root}/data_odometry_velodyne/*/*/train/*/*/*.bin'
+            ) + glob.glob(
+                root + '/data_odometry_velodyne/*/*/' + 'val' + '/*/*/*.bin'
+            )
+
 
         self.label_list = [i.replace("velodyne", "labels") for i in self.lidar_list]
 
@@ -110,12 +118,12 @@ class Dataset_semanticKITTI(data.Dataset):
         self.A.open_scan(self.lidar_list[index])
         self.A.open_label(self.label_list[index])
 
-        dataset_dict = {}
+        dataset_dict = {
+            'xyz': self.A.proj_xyz,
+            'remission': self.A.proj_remission,
+            'range_img': self.A.proj_range,
+        }
 
-        dataset_dict['xyz'] = self.A.proj_xyz
-        dataset_dict['remission'] = self.A.proj_remission
-        dataset_dict['range_img'] = self.A.proj_range
-    
 
         if self.if_range_mask:
             range_mask=(self.A.proj_range)/100.0
@@ -124,11 +132,11 @@ class Dataset_semanticKITTI(data.Dataset):
         else:
             dataset_dict['xyz_mask'] = self.A.proj_mask
         #dataset_dict['remission'] = F.to_tensor(self.A.proj_mask*(self.A.proj_remission-self.remission_mean)/self.remission_std)
-        
+
         semantic_label= self.A.proj_sem_label
         instance_label= self.A.proj_inst_label
         x_y_z_img=self.A.proj_xyz
-        
+
         semantic_train_label=self.generate_label(semantic_label)
         if self.with_normal:
             normal_image=self.calculate_normal(self.fill_spherical(self.A.proj_range))
@@ -143,7 +151,7 @@ class Dataset_semanticKITTI(data.Dataset):
         rand_mask_multi=None
 
 
-           
+
 
         input_tensor,semantic_label,semantic_label_mask=self.prepare_input_label_semantic(dataset_dict)
 
@@ -220,26 +228,24 @@ class Dataset_semanticKITTI(data.Dataset):
     def generate_label(self,semantic_label):
 
         original_label=np.copy(semantic_label)
-        label_new=self.sem_label_transform(original_label)
-        
-        return label_new
+        return self.sem_label_transform(original_label)
 
 
     def fill_spherical(self,range_image):
         # fill in spherical image for calculating normal vector
         height,width=np.shape(range_image)[:2]
-        value_mask=np.asarray(1.0-np.squeeze(range_image)>0.1).astype(np.uint8)
+        value_mask = np.asarray(np.squeeze(range_image) < 0.9).astype(np.uint8)
         dt,lbl = cv2.distanceTransformWithLabels(value_mask, cv2.DIST_L1, 5, labelType=cv2.DIST_LABEL_PIXEL)
 
         with_value=np.squeeze(range_image)>0.1
-            
+
         depth_list=np.squeeze(range_image)[with_value]
-            
+
         label_list=np.reshape(lbl,[1,height*width])
         depth_list_all=depth_list[label_list-1]
 
         depth_map=np.reshape(depth_list_all,(height,width))
-        
+
         depth_map = cv2.GaussianBlur(depth_map,(7,7),0)
         depth_map=range_image*with_value+depth_map*(1-with_value)
         return depth_map

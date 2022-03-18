@@ -10,26 +10,22 @@ import yaml
 import open3d as o3d
 
 
-all_label={}
-for i in range(19):
-	all_label[i+1]=[]
-
-
+all_label = {i+1: [] for i in range(19)}
 max_add_count=1000
 
 
 root= "../Dataset/semanticKITTI/"
 split= 'val'
 
-lidar_list=glob.glob(root+'/data_odometry_velodyne/*/*/'+split+'/*/*/*.bin')
+lidar_list = glob.glob(f'{root}/data_odometry_velodyne/*/*/{split}/*/*/*.bin')
        
 
 label_list = [i.replace("velodyne", "labels") for i in lidar_list]
 label_list = [i.replace("bin", "label") for i in label_list]
-       
+
 thing_list=[1,2,3,4,5,6,7,8]
 CFG = yaml.safe_load(open('./semantic-kitti.yaml', 'r'))
-        
+
 color_dict = CFG["color_map"]
 
 label_transfer_dict =CFG["learning_map"]

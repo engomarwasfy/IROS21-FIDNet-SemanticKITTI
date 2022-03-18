@@ -68,23 +68,19 @@ class CE_Weight:
 
 	@staticmethod
 	def get_bin_weight(bin_num):
-		weight_list=[]
-		for i in range(bin_num+1):
-			weight_list.append(abs(i/float(bin_num)-0.5)*2+0.2)
-		return weight_list
+	    return [abs(i/float(bin_num)-0.5)*2+0.2 for i in range(bin_num+1)]
 
 def get_semantic_segmentation(sem):
-	# map semantic output to labels
-	if sem.size(0) != 1:
-		raise ValueError('Only supports inference for batch size = 1')
-	sem = sem.squeeze(0)
-	predict_pre=torch.argmax(sem, dim=0, keepdim=True)
-	'''
+    # map semantic output to labels
+    if sem.size(0) != 1:
+    	raise ValueError('Only supports inference for batch size = 1')
+    sem = sem.squeeze(0)
+    '''
 	sem_prob=Func.softmax(sem,dim=0)
 	change_mask_motorcyclist=torch.logical_and(predict_pre==7,sem_prob[8:9,:,:]>0.1)
 	predict_pre[change_mask_motorcyclist]=8
 	'''
-	return predict_pre
+    return torch.argmax(sem, dim=0, keepdim=True)
 
 
 
@@ -215,7 +211,7 @@ def lovasz_grad(gt_sorted):
     union = gts + (1 - gt_sorted).float().cumsum(0)
     jaccard = 1. - intersection / union
     if p > 1:  # cover 1-pixel case
-        jaccard[1:p] = jaccard[1:p] - jaccard[0:-1]
+        jaccard[1:p] = jaccard[1:p] - jaccard[:-1]
     return jaccard
 
 
@@ -229,12 +225,19 @@ def lovasz_softmax(probas, labels, classes='present', per_image=False, ignore=No
       per_image: compute the loss per image instead of per batch
       ignore: void class labels
     """
-    if per_image:
-        loss = mean(lovasz_softmax_flat(*flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore), classes=classes)
-                    for prob, lab in zip(probas, labels))
-    else:
-        loss = lovasz_softmax_flat(*flatten_probas(probas, labels, ignore), classes=classes)
-    return loss
+    return (
+        mean(
+            lovasz_softmax_flat(
+                *flatten_probas(prob.unsqueeze(0), lab.unsqueeze(0), ignore),
+                classes=classes
+            )
+            for prob, lab in zip(probas, labels)
+        )
+        if per_image
+        else lovasz_softmax_flat(
+            *flatten_probas(probas, labels, ignore), classes=classes
+        )
+    )
 
 
 def lovasz_softmax_flat(probas, labels, classes='present'):
